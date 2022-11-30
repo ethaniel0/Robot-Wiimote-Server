@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Norm</title>
+  
+  <style>
+    nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    nav div {
+      margin-bottom: 1rem;
+    }
+  </style>
+  
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js" integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H" crossorigin="anonymous"></script>
+</head>
+<body>
+  <iframe src="http://169.254.202.204:8000/index.html" frameborder="0" style="width: 100vw; height: 60vh;"></iframe>
+  <center>
+    <h1>Norm Servo</h1>
+    <br>
+    <br>
+    <nav id='nav'>
+      <div>
+        <span>Forward</span>
+        <input id='btA' type="text" maxlength=1 value='w'>
+      </div>
+      <div>
+        <span>Backward</span>
+        <input id='btB' type="text" maxlength=1 value='s'>
+      </div>
+      <div>
+        <span>Left</span>
+        <input id='bt1' type="text" maxlength=1 value='a'>
+      </div>
+      <div>
+        <span>Right</span>
+        <input id='bt2' type="text" maxlength=1 value='d'>
+      </div>
+      <div>
+        <span>Up</span>
+        <input id='btUp' type="text" maxlength=1 value='q'>
+      </div>
+      <div>
+        <span>Down</span>
+        <input id='btDown' type="text" maxlength=1 value='e'>
+      </div>
+    </nav>
+    <br>
+    <button onclick='setControls()'>Set Controls</button>
+    
+  </center>
+
+
+  <script>
+    var socket = io();
+
+
+    keymap = {
+      // left, right, back, front
+      Forward: [1, 1, 0, 0],      // forward
+      Backward: [-1, -1, 0, 0],    // backward
+      Left: [-1, 1, 0, 0],     // left
+      Right: [1, -1, 0, 0],     // right
+      Up: [0, 0, 1, 1],      // up
+      Down: [0, 0, -1, -1],    // down
+  };
+
+
+    let controlToNumber = {
+        Forward: 0x1,
+        Backward: 0x2,
+        Left: 0x4,
+        Right: 0x8,
+        Up: 0x10,
+        Down: 0x20
+    }
+
+
+    let controls = {};
+    let presses = {};
+
+
+    function setControls(){
+      let nav = document.getElementById('nav');
+      for (let d of nav.getElementsByTagName('div')){
+        let name = d.getElementsByTagName('span')[0].innerHTML;
+        let nameNum = keymap[name];
+        let val = d.getElementsByTagName('input')[0].value.toUpperCase();
+        controls[val.charCodeAt(0)] = nameNum;
+        presses[val.charCodeAt(0)] = false;
+      }
+      console.log('controls', controls, 'presses', presses);
+    }
+
+
+    document.addEventListener('keydown', (e) => {
+        if (e.keyCode in presses && !presses[e.keyCode]){
+            console.log(e.keyCode);
+            presses[e.keyCode] = true;
+            nums = [0, 0, 0, 0];
+            for (let key in presses){
+                if (presses[key]){
+                  nums[0] += controls[key][0];
+                  nums[1] += controls[key][1];
+                  nums[2] += controls[key][2];
+                  nums[3] += controls[key][3];
+                }
+            }
+            console.log('num:', nums);
+            socket.emit('thrust', nums);
+            
+        }
+    })
+
+
+    document.addEventListener('keyup', (e) => {
+        if (e.keyCode in presses && controls[e.keyCode]){
+            presses[e.keyCode] = false;
+            nums = [0, 0, 0, 0];
+            for (let key in presses){
+                if (presses[key]){
+                  nums[0] += controls[key][0];
+                  nums[1] += controls[key][1];
+                  nums[2] += controls[key][2];
+                  nums[3] += controls[key][3];
+                }
+            }
+            console.log('num:', nums);
+            socket.emit('thrust', nums);
+            
+        }
+    })
+    
+  </script>
+  
+</body>
+</html>
