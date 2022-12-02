@@ -2,7 +2,6 @@ import flask
 import flask_socketio
 from flask import request
 
-
 keymap = {
     #    [left, right, back front]
     'f': [1, 1, 0, 0],      # forward
@@ -54,6 +53,14 @@ def disconnect():
     if request.sid == pisid:
         piReady = False
     print('Client disconnected')
+
+@socketio.on('getSense')
+def webSense():
+    socketio.emit("sense")
+
+@socketio.on('sense')
+def getSense(num):
+    socketio.emit("getSense", num)
 
 @socketio.on('thrust')
 def thrust(data):

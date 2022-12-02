@@ -6,6 +6,8 @@ socket.on('connect', function() {
   console.log('connected!');
 });
 
+
+
 let requestButton = document.getElementById("request-hid-device");
 
 var wiimote = undefined;
@@ -15,6 +17,25 @@ var lrspeedPressed = false;
 var lrspeed = 1;
 var prevCommand = [0, 0, 0, 0];
 var rumbleCount = 0;
+var rumbleSpeed = 0;
+
+socket.on('getSense', function(num) {
+  let word = ["Nothing", "Aluminum", "Steel"][num];
+  document.getElementById("sense").innerHTML = word;
+
+  // aluminum
+  if(num == 1){
+    rumbleSpeed = 30;
+  }
+  // steel
+  else if (num == 2 && !wiimote.rumblingStatus){
+    rumbleSpeed = 60;
+  }
+  //nothing
+  else {
+    rumbleSpeed = 0;
+  }
+})
 
 function setButton(elementId, action) {
   document.getElementById(elementId).addEventListener("click", async () => {
@@ -82,7 +103,7 @@ function initCanvas(){
     // document.getElementById('nunZ').innerHTML = z
   }
 
-  wiimote.RobotListener = (a, b, two, x, y, c, z, up, down, plus, acc) => {
+  wiimote.RobotListener = (a, b, two, x, y, c, z, up, down, plus, minus, acc) => {
     acc -= 125;
     if (!udspeedPressed){
       if (up){
@@ -115,16 +136,6 @@ function initCanvas(){
 
     if (plus){
       udmotors = -Math.max(-1, Math.min(1, acc / 25.0));
-      // if (!wiimote.rumblingStatus) wiimote.toggleRumble(true);
-      let rumbleSpeed = Math.max(0, Math.min(25, Math.abs(acc))) + 1;
-      if (rumbleCount % 25 <= rumbleSpeed){
-        wiimote.setRumble(true);
-      }
-      else wiimote.setRumble(false);
-      rumbleCount = (rumbleCount+1)%25;
-    }
-    else {
-      wiimote.setRumble(false);
     }
     
 
@@ -143,8 +154,19 @@ function initCanvas(){
       wiimote.toggleLed(0, normud % 2 == 1);
       wiimote.toggleLed(1, (normud >> 1)%2 == 1);
     }
+    else {
+      let ud = Math.round(Math.abs(udmotors) * 4);
+      wiimote.toggleLed(0, ud % 2 == 1);
+      wiimote.toggleLed(1, (ud >> 1)%2 == 1);
+    }
     wiimote.toggleLed(2, normlr % 2 == 1);
     wiimote.toggleLed(3, (normlr >> 1)%2 == 1);
+
+    if (rumbleCount < rumbleSpeed && !wiimote.rumblingStatus){
+      wiimote.setRumble(true);
+    }
+    else wiimote.setRumble(false);
+    rumbleCount = (rumbleCount+1)%60;
 
     document.getElementById('ctrl-x').innerHTML = Math.round(x * lrspeed * 100) + "%";
     document.getElementById('ctrl-y').innerHTML = Math.round(y * lrspeed * 100) + "%";
@@ -154,14 +176,6 @@ function initCanvas(){
     document.getElementById('lr-speed').innerHTML = Math.round(lrspeed * 4);
     document.getElementById('ctrl-acc').innerHTML = acc;
     document.getElementById('acc-rep').style.fontWeight = plus == true ? 'bold' : 'normal';
-
-    // if (udmotors >= 0){
-    //   document.getElementById('ud-acc-disp').style.background = `linear-gradient(to right, white 0%, white 50%, green 50%, green ${100*(udmotors/2 + 1)}%, white ${100*(udmotors/2 + 1)}%, white 100%)`;
-    // }
-    // else {
-    //   document.getElementById('ud-acc-disp').style.background = `linear-gradient(to right, white 0%, white ${100*(udmotors/2 + 1)}%, green ${100*(udmotors/2 + 1)}%, green 50%, white 50%, white 100%)`;
-    // }
-    // document.getElementById('ud-acc-disp').style.background = ''
   }
 
 }
@@ -171,5 +185,7 @@ function enableControls(){
   document.getElementById("instructions").classList.add("hidden")
 }
 
+
+setInterval(() => socket.emit('getSense'), 1000);
 
 // initButtons()

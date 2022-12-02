@@ -223,8 +223,9 @@ export default class WIIMote{
         let up = this.buttonStatus['DPAD_UP'];
         let down = this.buttonStatus['DPAD_DOWN'];
         let plus = this.buttonStatus['PLUS'];
+        let minus = this.buttonStatus['MINUS'];
         
-        this.RobotListener(A, B, two, stickX, stickY, cbtn, zbtn, up, down, plus, accY);
+        this.RobotListener(A, B, two, stickX, stickY, cbtn, zbtn, up, down, plus, minus, accY);
         
     }
 }
